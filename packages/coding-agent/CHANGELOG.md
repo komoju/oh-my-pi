@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added RPC commands to host a collab session (`collab_start`, `collab_stop`, `collab_status`) with join/view links and participants.
+
 ## [18.12.2] - 2026-10-18
 
 ### Added

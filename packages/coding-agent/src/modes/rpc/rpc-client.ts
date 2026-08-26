@@ -30,6 +30,7 @@ import type {
 	RpcBtwDeltaFrame,
 	RpcBtwRecordFrame,
 	RpcAvailableSlashCommand,
+	RpcCollabStatus,
 	RpcCommand,
 	RpcExtensionUIRequest,
 	RpcExtensionUIResponse,
@@ -1223,6 +1224,30 @@ export class RpcClient {
 		return this.#getData<{
 			providers: Array<{ id: string; name: string; available: boolean; authenticated: boolean }>;
 		}>(response).providers;
+	}
+
+	/**
+	 * Start hosting a collab session (or return the active links if already hosting).
+	 */
+	async collabStart(relayUrl?: string): Promise<RpcCollabStatus> {
+		const response = await this.#send({ type: "collab_start", relayUrl });
+		return this.#getData<RpcCollabStatus>(response);
+	}
+
+	/**
+	 * Stop hosting the active collab session.
+	 */
+	async collabStop(): Promise<RpcCollabStatus> {
+		const response = await this.#send({ type: "collab_stop" });
+		return this.#getData<RpcCollabStatus>(response);
+	}
+
+	/**
+	 * Return whether this RPC session is hosting collab, plus links and participants.
+	 */
+	async collabStatus(): Promise<RpcCollabStatus> {
+		const response = await this.#send({ type: "collab_status" });
+		return this.#getData<RpcCollabStatus>(response);
 	}
 
 	/**
