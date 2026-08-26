@@ -128,6 +128,11 @@ export type RpcCommand =
 	| { id?: string; type: "get_logout_accounts"; providerId: string }
 	| { id?: string; type: "logout"; providerId: string; credentialId: number }
 
+	// Collab
+	| { id?: string; type: "collab_start"; relayUrl?: string }
+	| { id?: string; type: "collab_stop" }
+	| { id?: string; type: "collab_status" }
+
 	// Word prediction (composer ghost text); `cursor` is a UTF-16 offset into `text`
 	| { id?: string; type: "predict_word"; text: string; cursor: number }
 	| {
@@ -333,6 +338,21 @@ export interface RpcChunkFrame {
 
 export interface RpcHandoffResult {
 	savedPath?: string;
+}
+
+export interface RpcCollabParticipant {
+	name: string;
+	role: "host" | "guest";
+	readOnly?: boolean;
+}
+
+export interface RpcCollabStatus {
+	hosting: boolean;
+	link?: string;
+	webLink?: string;
+	viewLink?: string;
+	webViewLink?: string;
+	participants: RpcCollabParticipant[];
 }
 
 export type RpcSubagentSubscriptionLevel = "off" | "progress" | "events";
@@ -596,6 +616,11 @@ export type RpcResponse =
 			success: true;
 			data: { records: readonly BtwHistoryRecord[] };
 	  }
+
+	// Collab
+	| { id?: string; type: "response"; command: "collab_start"; success: true; data: RpcCollabStatus }
+	| { id?: string; type: "response"; command: "collab_stop"; success: true; data: RpcCollabStatus }
+	| { id?: string; type: "response"; command: "collab_status"; success: true; data: RpcCollabStatus }
 
 	// Error response (any command can fail); `code` is an optional machine-readable reason.
 	| { id?: string; type: "response"; command: string; success: false; error: string; code?: string };

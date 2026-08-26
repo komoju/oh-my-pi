@@ -3385,6 +3385,80 @@ func (v *HandoffResult) decodeFrom(raw map[string]json.RawMessage) error {
 	return nil
 }
 
+// One collab participant as seen by the hosting session.
+type CollabParticipant struct {
+	Name     string                `json:"name"`
+	Role     CollabParticipantRole `json:"role"`
+	ReadOnly *bool                 `json:"readOnly,omitempty"`
+}
+
+func (v *CollabParticipant) UnmarshalJSON(data []byte) error {
+	return decodeWith(data, "CollabParticipant", v.decodeFrom)
+}
+
+func (v *CollabParticipant) decodeFrom(raw map[string]json.RawMessage) error {
+	var out CollabParticipant
+	d := fieldDecoder{raw: raw, owner: "CollabParticipant"}
+	d.required("name", &out.Name)
+	d.required("role", &out.Role)
+	d.optional("readOnly", &out.ReadOnly)
+	if d.err != nil {
+		return d.err
+	}
+	*v = out
+	return nil
+}
+
+type CollabParticipantRole string
+
+const (
+	CollabParticipantRoleHost  CollabParticipantRole = "host"
+	CollabParticipantRoleGuest CollabParticipantRole = "guest"
+)
+
+func (v *CollabParticipantRole) UnmarshalJSON(data []byte) error {
+	s, err := decodeString(data, "CollabParticipantRole")
+	if err != nil {
+		return err
+	}
+	switch value := CollabParticipantRole(s); value {
+	case CollabParticipantRoleHost, CollabParticipantRoleGuest:
+		*v = value
+		return nil
+	}
+	return unknownValue("CollabParticipantRole", s)
+}
+
+// Collab hosting state; `hosting: false` carries only the empty participant list.
+type CollabStatus struct {
+	Hosting      bool                `json:"hosting"`
+	Participants []CollabParticipant `json:"participants"`
+	Link         *string             `json:"link,omitempty"`
+	WebLink      *string             `json:"webLink,omitempty"`
+	ViewLink     *string             `json:"viewLink,omitempty"`
+	WebViewLink  *string             `json:"webViewLink,omitempty"`
+}
+
+func (v *CollabStatus) UnmarshalJSON(data []byte) error {
+	return decodeWith(data, "CollabStatus", v.decodeFrom)
+}
+
+func (v *CollabStatus) decodeFrom(raw map[string]json.RawMessage) error {
+	var out CollabStatus
+	d := fieldDecoder{raw: raw, owner: "CollabStatus"}
+	d.required("hosting", &out.Hosting)
+	d.required("participants", &out.Participants)
+	d.optional("link", &out.Link)
+	d.optional("webLink", &out.WebLink)
+	d.optional("viewLink", &out.ViewLink)
+	d.optional("webViewLink", &out.WebViewLink)
+	if d.err != nil {
+		return d.err
+	}
+	*v = out
+	return nil
+}
+
 // `agentInvoked: false` means the prompt completed locally and no `prompt_result` follows.
 type PromptAck struct {
 	AgentInvoked *bool `json:"agentInvoked,omitempty"`
@@ -7977,6 +8051,32 @@ type LogoutCommand struct {
 func (c Commands) Logout(ctx context.Context, p LogoutCommand) (LogoutResult, error) {
 	var out LogoutResult
 	err := c.call(ctx, "logout", p, 0, &out)
+	return out, err
+}
+
+// CollabStartCommand holds the parameters of "collab_start".
+type CollabStartCommand struct {
+	RelayURL *string `json:"relayUrl,omitempty"`
+}
+
+// CollabStart sends "collab_start": Start hosting a collab session (or return the active links when already hosting).
+func (c Commands) CollabStart(ctx context.Context, p CollabStartCommand) (bool, error) {
+	var out CollabStatus
+	err := c.call(ctx, "collab_start", p, 0, &out)
+	return out.Hosting, err
+}
+
+// CollabStop sends "collab_stop": Stop hosting the active collab session; false when not hosting.
+func (c Commands) CollabStop(ctx context.Context) (CollabStatus, error) {
+	var out CollabStatus
+	err := c.call(ctx, "collab_stop", nil, 0, &out)
+	return out, err
+}
+
+// CollabStatus sends "collab_status": Whether this RPC session is hosting collab, plus links and participants.
+func (c Commands) CollabStatus(ctx context.Context) (CollabStatus, error) {
+	var out CollabStatus
+	err := c.call(ctx, "collab_status", nil, 0, &out)
 	return out, err
 }
 

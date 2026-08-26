@@ -935,6 +935,25 @@ class HandoffResult:
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
+class CollabParticipant:
+    """One collab participant as seen by the hosting session."""
+    name: str
+    role: Literal["host", "guest"]
+    read_only: bool | None = None
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class CollabStatus:
+    """Collab hosting state; `hosting: false` carries only the empty participant list."""
+    hosting: bool
+    participants: tuple[CollabParticipant, ...]
+    link: str | None = None
+    web_link: str | None = None
+    view_link: str | None = None
+    web_view_link: str | None = None
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
 class PromptAck:
     """`agentInvoked: false` means the prompt completed locally and no `prompt_result` follows."""
     agent_invoked: bool | None = None
@@ -2245,6 +2264,27 @@ def parse_handoff_result(value: object, path: str = "HandoffResult") -> HandoffR
     )
 
 
+def parse_collab_participant(value: object, path: str = "CollabParticipant") -> CollabParticipant:
+    payload = expect_object(value, path)
+    return CollabParticipant(
+        name=required(payload, "name", decode_str, path),
+        role=required(payload, "role", cast('Decoder[Literal["host", "guest"]]', literal(frozenset({"host", "guest"}))), path),
+        read_only=optional(payload, "readOnly", decode_bool, path),
+    )
+
+
+def parse_collab_status(value: object, path: str = "CollabStatus") -> CollabStatus:
+    payload = expect_object(value, path)
+    return CollabStatus(
+        hosting=required(payload, "hosting", decode_bool, path),
+        participants=required(payload, "participants", array(parse_collab_participant), path),
+        link=optional(payload, "link", decode_str, path),
+        web_link=optional(payload, "webLink", decode_str, path),
+        view_link=optional(payload, "viewLink", decode_str, path),
+        web_view_link=optional(payload, "webViewLink", decode_str, path),
+    )
+
+
 def parse_prompt_ack(value: object, path: str = "PromptAck") -> PromptAck:
     payload = expect_object(value, path)
     return PromptAck(
@@ -3465,6 +3505,23 @@ class WireClient:
         params["credentialId"] = credential_id
         return parse_logout_result(self._command("logout", params), "logout")
 
+    def collab_start(self, relay_url: str | None = None) -> bool:
+        """Start hosting a collab session (or return the active links when already hosting)."""
+        params: dict[str, object] = {}
+        if relay_url is not None:
+            params["relayUrl"] = relay_url
+        return required(expect_object(self._command("collab_start", params), "collab_start"), "hosting", decode_bool, "collab_start")
+
+    def collab_stop(self) -> CollabStatus:
+        """Stop hosting the active collab session; false when not hosting."""
+        params: dict[str, object] = {}
+        return parse_collab_status(self._command("collab_stop", params), "collab_stop")
+
+    def collab_status(self) -> CollabStatus:
+        """Whether this RPC session is hosting collab, plus links and participants."""
+        params: dict[str, object] = {}
+        return parse_collab_status(self._command("collab_status", params), "collab_status")
+
     def predict_word(self, text: str, cursor: int) -> str | None:
         """Ghost-text suffix for the prose word ending at `cursor` (a UTF-16 offset); null when none applies."""
         params: dict[str, object] = {}
@@ -3757,6 +3814,8 @@ __all__ = [
     "CacheWarmingStartEvent",
     "CancelUiRequest",
     "CancellationResult",
+    "CollabParticipant",
+    "CollabStatus",
     "CommandOutputEvent",
     "CompactionResult",
     "CompactionSummaryMessage",
@@ -3941,6 +4000,8 @@ __all__ = [
     "parse_cache_warming_start_event",
     "parse_cancel_ui_request",
     "parse_cancellation_result",
+    "parse_collab_participant",
+    "parse_collab_status",
     "parse_command_output_event",
     "parse_compaction_result",
     "parse_compaction_summary_message",

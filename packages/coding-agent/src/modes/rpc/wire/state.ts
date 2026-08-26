@@ -308,6 +308,25 @@ export const stateDefs = {
 		"A stored credential `logout` can remove; `active` marks credentials the session may be using.",
 	),
 	HandoffResult: { "savedPath?": "string" },
+	CollabParticipant: doc(
+		{
+			name: "string",
+			role: "'host' | 'guest'",
+			"readOnly?": "boolean",
+		},
+		"One collab participant as seen by the hosting session.",
+	),
+	CollabStatus: doc(
+		{
+			hosting: "boolean",
+			"link?": "string",
+			"webLink?": "string",
+			"viewLink?": "string",
+			"webViewLink?": "string",
+			participants: "CollabParticipant[]",
+		},
+		"Collab hosting state; `hosting: false` carries only the empty participant list.",
+	),
 	PromptAck: doc(
 		{ "agentInvoked?": "boolean" },
 		"`agentInvoked: false` means the prompt completed locally and no `prompt_result` follows.",

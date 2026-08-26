@@ -3466,6 +3466,30 @@ pub struct HandoffResult {
 	pub saved_path: Option<String>,
 }
 
+/// One collab participant as seen by the hosting session.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CollabParticipant {
+	pub name: String,
+	pub role: CollabParticipantRole,
+	#[serde(rename = "readOnly", default, skip_serializing_if = "Option::is_none")]
+	pub read_only: Option<bool>,
+}
+
+/// Collab hosting state; `hosting: false` carries only the empty participant list.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CollabStatus {
+	pub hosting: bool,
+	pub participants: Vec<CollabParticipant>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub link: Option<String>,
+	#[serde(rename = "webLink", default, skip_serializing_if = "Option::is_none")]
+	pub web_link: Option<String>,
+	#[serde(rename = "viewLink", default, skip_serializing_if = "Option::is_none")]
+	pub view_link: Option<String>,
+	#[serde(rename = "webViewLink", default, skip_serializing_if = "Option::is_none")]
+	pub web_view_link: Option<String>,
+}
+
 /// `agentInvoked: false` means the prompt completed locally and no `prompt_result` follows.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PromptAck {
@@ -5427,6 +5451,12 @@ pub struct LogoutResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CollabStartParams {
+	#[serde(rename = "relayUrl", default, skip_serializing_if = "Option::is_none")]
+	pub relay_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PredictWordParams {
 	pub text: String,
 	pub cursor: i64,
@@ -5713,6 +5743,24 @@ impl LogoutAccountType {
 		match self {
 			Self::ApiKey => "api_key",
 			Self::Oauth => "oauth",
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CollabParticipantRole {
+	#[serde(rename = "host")]
+	Host,
+	#[serde(rename = "guest")]
+	Guest,
+}
+
+impl CollabParticipantRole {
+	/// Wire value.
+	pub fn as_str(self) -> &'static str {
+		match self {
+			Self::Host => "host",
+			Self::Guest => "guest",
 		}
 	}
 }
@@ -6894,6 +6942,51 @@ impl Command for LogoutCommand {
 
 	fn decode(data: Option<Value>) -> Result<Self::Output, serde_json::Error> {
 		serde_json::from_value::<LogoutResult>(data.unwrap_or_else(|| Value::Object(Map::new())))
+	}
+}
+
+/// Start hosting a collab session (or return the active links when already hosting).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CollabStartCommand {
+	#[serde(rename = "relayUrl", default, skip_serializing_if = "Option::is_none")]
+	pub relay_url: Option<String>,
+}
+
+impl Command for CollabStartCommand {
+	const NAME: &'static str = "collab_start";
+	const TIMEOUT_MS: Option<u64> = None;
+	type Output = bool;
+
+	fn decode(data: Option<Value>) -> Result<Self::Output, serde_json::Error> {
+		serde_json::from_value::<CollabStatus>(data.unwrap_or_else(|| Value::Object(Map::new()))).map(|result| result.hosting)
+	}
+}
+
+/// Stop hosting the active collab session; false when not hosting.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CollabStopCommand {}
+
+impl Command for CollabStopCommand {
+	const NAME: &'static str = "collab_stop";
+	const TIMEOUT_MS: Option<u64> = None;
+	type Output = CollabStatus;
+
+	fn decode(data: Option<Value>) -> Result<Self::Output, serde_json::Error> {
+		serde_json::from_value::<CollabStatus>(data.unwrap_or_else(|| Value::Object(Map::new())))
+	}
+}
+
+/// Whether this RPC session is hosting collab, plus links and participants.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CollabStatusCommand {}
+
+impl Command for CollabStatusCommand {
+	const NAME: &'static str = "collab_status";
+	const TIMEOUT_MS: Option<u64> = None;
+	type Output = CollabStatus;
+
+	fn decode(data: Option<Value>) -> Result<Self::Output, serde_json::Error> {
+		serde_json::from_value::<CollabStatus>(data.unwrap_or_else(|| Value::Object(Map::new())))
 	}
 }
 

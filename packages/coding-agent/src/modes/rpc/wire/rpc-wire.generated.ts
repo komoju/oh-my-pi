@@ -751,6 +751,23 @@ export interface HandoffResult {
 	savedPath?: string;
 }
 
+/** One collab participant as seen by the hosting session. */
+export interface CollabParticipant {
+	name: string;
+	role: "host" | "guest";
+	readOnly?: boolean;
+}
+
+/** Collab hosting state; `hosting: false` carries only the empty participant list. */
+export interface CollabStatus {
+	hosting: boolean;
+	participants: CollabParticipant[];
+	link?: string;
+	webLink?: string;
+	viewLink?: string;
+	webViewLink?: string;
+}
+
 /** `agentInvoked: false` means the prompt completed locally and no `prompt_result` follows. */
 export interface PromptAck {
 	agentInvoked?: boolean;
@@ -1742,6 +1759,10 @@ export interface LogoutResult {
 	remainingSource?: string;
 }
 
+export interface CollabStartParams {
+	relayUrl?: string;
+}
+
 export interface PredictWordParams {
 	text: string;
 	cursor: number;
@@ -1843,6 +1864,9 @@ export interface RpcWireCommands {
 	login: { params: LoginParams; result: LoginResult };
 	get_logout_accounts: { params: GetLogoutAccountsParams; result: GetLogoutAccountsResult };
 	logout: { params: LogoutParams; result: LogoutResult };
+	collab_start: { params: CollabStartParams; result: CollabStatus };
+	collab_stop: { params: undefined; result: CollabStatus };
+	collab_status: { params: undefined; result: CollabStatus };
 	predict_word: { params: PredictWordParams; result: PredictWordResult };
 	predict_word_feedback: { params: PredictWordFeedbackParams; result: undefined };
 	btw: { params: BtwParams; result: BtwResult };

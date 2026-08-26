@@ -694,6 +694,39 @@
 				"clientOmit": []
 			},
 			{
+				"name": "collab_start",
+				"doc": "Start hosting a collab session (or return the active links when already hosting).",
+				"params": "CollabStartParams",
+				"result": "CollabStatus",
+				"nullable": false,
+				"unwrap": "hosting",
+				"timeoutMs": null,
+				"completion": null,
+				"clientOmit": []
+			},
+			{
+				"name": "collab_stop",
+				"doc": "Stop hosting the active collab session; false when not hosting.",
+				"params": null,
+				"result": "CollabStatus",
+				"nullable": false,
+				"unwrap": null,
+				"timeoutMs": null,
+				"completion": null,
+				"clientOmit": []
+			},
+			{
+				"name": "collab_status",
+				"doc": "Whether this RPC session is hosting collab, plus links and participants.",
+				"params": null,
+				"result": "CollabStatus",
+				"nullable": false,
+				"unwrap": null,
+				"timeoutMs": null,
+				"completion": null,
+				"clientOmit": []
+			},
+			{
 				"name": "predict_word",
 				"doc": "Ghost-text suffix for the prose word ending at `cursor` (a UTF-16 offset); null when none applies.",
 				"params": "PredictWordParams",
@@ -3444,6 +3477,60 @@
 					"type": "string"
 				}
 			}
+		},
+		"CollabParticipant": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"role": {
+					"enum": [
+						"host",
+						"guest"
+					],
+					"type": "string"
+				},
+				"readOnly": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"name",
+				"role"
+			],
+			"description": "One collab participant as seen by the hosting session."
+		},
+		"CollabStatus": {
+			"type": "object",
+			"properties": {
+				"hosting": {
+					"type": "boolean"
+				},
+				"participants": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/CollabParticipant"
+					}
+				},
+				"link": {
+					"type": "string"
+				},
+				"webLink": {
+					"type": "string"
+				},
+				"viewLink": {
+					"type": "string"
+				},
+				"webViewLink": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"hosting",
+				"participants"
+			],
+			"description": "Collab hosting state; `hosting: false` carries only the empty participant list."
 		},
 		"PromptAck": {
 			"type": "object",
@@ -6629,6 +6716,14 @@
 			"type": "object",
 			"properties": {
 				"remainingSource": {
+					"type": "string"
+				}
+			}
+		},
+		"CollabStartParams": {
+			"type": "object",
+			"properties": {
+				"relayUrl": {
 					"type": "string"
 				}
 			}

@@ -337,6 +337,25 @@ export const rpcCommands: readonly RpcCommandSpec[] = [
 	},
 
 	{
+		name: "collab_start",
+		doc: "Start hosting a collab session (or return the active links when already hosting).",
+		params: { "relayUrl?": "string" },
+		result: "CollabStatus",
+		unwrap: "hosting",
+		nullable: false,
+	},
+	{
+		name: "collab_stop",
+		doc: "Stop hosting the active collab session; false when not hosting.",
+		result: "CollabStatus",
+	},
+	{
+		name: "collab_status",
+		doc: "Whether this RPC session is hosting collab, plus links and participants.",
+		result: "CollabStatus",
+	},
+
+	{
 		name: "predict_word",
 		doc: "Ghost-text suffix for the prose word ending at `cursor` (a UTF-16 offset); null when none applies.",
 		params: { text: "string", cursor: "number.integer" },
