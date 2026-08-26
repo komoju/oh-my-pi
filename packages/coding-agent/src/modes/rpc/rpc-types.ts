@@ -90,7 +90,12 @@ export type RpcCommand =
 
 	// Login
 	| { id?: string; type: "get_login_providers" }
-	| { id?: string; type: "login"; providerId: string };
+	| { id?: string; type: "login"; providerId: string }
+
+	// Collab
+	| { id?: string; type: "collab_start"; relayUrl?: string }
+	| { id?: string; type: "collab_stop" }
+	| { id?: string; type: "collab_status" };
 
 // ============================================================================
 // RPC State
@@ -160,6 +165,21 @@ export interface RpcChunkFrame {
 
 export interface RpcHandoffResult {
 	savedPath?: string;
+}
+
+export interface RpcCollabParticipant {
+	name: string;
+	role: "host" | "guest";
+	readOnly?: boolean;
+}
+
+export interface RpcCollabStatus {
+	hosting: boolean;
+	link?: string;
+	webLink?: string;
+	viewLink?: string;
+	webViewLink?: string;
+	participants: RpcCollabParticipant[];
 }
 
 export type RpcSubagentSubscriptionLevel = "off" | "progress" | "events";
@@ -337,6 +357,11 @@ export type RpcResponse =
 			data: { providers: Array<{ id: string; name: string; available: boolean; authenticated: boolean }> };
 	  }
 	| { id?: string; type: "response"; command: "login"; success: true; data: { providerId: string } }
+
+	// Collab
+	| { id?: string; type: "response"; command: "collab_start"; success: true; data: RpcCollabStatus }
+	| { id?: string; type: "response"; command: "collab_stop"; success: true; data: RpcCollabStatus }
+	| { id?: string; type: "response"; command: "collab_status"; success: true; data: RpcCollabStatus }
 
 	// Error response (any command can fail); `code` is an optional machine-readable reason.
 	| { id?: string; type: "response"; command: string; success: false; error: string; code?: string };

@@ -197,6 +197,21 @@ The bundled TypeScript `RpcClient.getMessages()` and Python `RpcClient.get_messa
 - `{ id?, type: "get_login_providers" }`
 - `{ id?, type: "login", providerId: string }`
 
+<<<<<<< HEAD
+=======
+Login forwards ordinary OAuth input prompts only after the provider emits an
+authorization URL. Prompts marked `secret: true` are always rejected with a
+failed `login` response directing the user to the terminal UI; no ordinary
+`input` request is emitted. RPC does not negotiate secret-input support.
+### Collab
+
+- `{ id?, type: "collab_start", relayUrl?: string }`
+- `{ id?, type: "collab_stop" }`
+- `{ id?, type: "collab_status" }`
+
+These host a live collab session from RPC without a TUI. `collab_start` uses `collab.relayUrl` when `relayUrl` is omitted, scheme-less hosts default to `wss://`, and a second start while already hosting re-returns the active links. Success payloads are `{ hosting, link?, webLink?, viewLink?, webViewLink?, participants }`. Guests still join with `/join` or `omp join`; RPC does not join as a guest.
+
+>>>>>>> 15629517bf (feat(coding-agent): expose RPC commands for hosting collab)
 ## Response Schema
 
 All command results use `RpcResponse`:

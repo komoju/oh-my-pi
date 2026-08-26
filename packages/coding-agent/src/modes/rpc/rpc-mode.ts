@@ -15,6 +15,7 @@ import { getOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
 import { toolWireSchema } from "@oh-my-pi/pi-ai/utils/schema";
 import { $env, isRecord, Snowflake } from "@oh-my-pi/pi-utils";
 import { reset as resetCapabilities } from "../../capability";
+import { CollabHost } from "../../collab/host";
 import { clearPluginRootsAndCaches, resolveActiveProjectRegistryPath } from "../../discovery/helpers";
 import {
 	type ExtensionUIContext,
@@ -42,6 +43,7 @@ import { calculateTokensPerSecond } from "../../utils/token-rate";
 import { initializeExtensions } from "../runtime-init";
 import { isRpcHostToolResult, isRpcHostToolUpdate, RpcHostToolBridge } from "./host-tools";
 import { isRpcHostUriResult, RpcHostUriBridge } from "./host-uris";
+import { isRpcCollabCommand, RpcCollabController } from "./rpc-collab";
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES, RpcFrameEncoder } from "./rpc-frame";
 import { claimRpcInput, readRpcInputFrames } from "./rpc-input";
 import { pageRpcMessages, RPC_MESSAGES_PAGE_BUSY_ERROR, RpcMessagesPageError } from "./rpc-messages";
@@ -858,6 +860,11 @@ export async function runRpcMode(
 	const hostToolBridge = new RpcHostToolBridge(output);
 	const hostUriBridge = new RpcHostUriBridge(output);
 	const subagentRegistry = subagentEventBus ? new RpcSubagentRegistry(subagentEventBus, output) : undefined;
+	const collabController = new RpcCollabController({
+		session,
+		eventBus: subagentEventBus,
+		createHost: ctx => new CollabHost(ctx),
+	});
 
 	// Shutdown request flag (wrapped in object to allow mutation with const)
 	const shutdownState = { requested: false };
@@ -1102,6 +1109,10 @@ export async function runRpcMode(
 	// Handle a single command
 	const handleCommand = async (command: RpcCommand): Promise<RpcResponse> => {
 		const id = command.id;
+
+		if (isRpcCollabCommand(command)) {
+			return collabController.dispatch(command);
+		}
 
 		switch (command.type) {
 			case "negotiate_protocol": {
@@ -1641,6 +1652,7 @@ export async function runRpcMode(
 	hostUriBridge.clear("RPC client disconnected before host URI request completed");
 	await inputDispatcher.drain();
 	await shutdownCoordinator.drain();
+	await collabController.dispose();
 	subagentRegistry?.dispose();
 	// Dispose the main session before exiting so the browser reaper and other
 	// bounded teardown run on the stdin-EOF path too (#5643). Idempotent: a
