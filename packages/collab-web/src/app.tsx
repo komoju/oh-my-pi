@@ -100,7 +100,10 @@ export function App(): ReactNode {
 	// Deep link: a page load with a hash auto-connects.
 	useEffect(() => {
 		const link = hashLink();
-		if (link) connect(link, storedName());
+		if (link) {
+			const urlName = new URLSearchParams(window.location.search).get("name");
+			connect(link, urlName?.trim() || storedName());
+		}
 	}, [connect]);
 
 	useEffect(() => {
