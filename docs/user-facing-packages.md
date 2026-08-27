@@ -92,7 +92,19 @@ Sources: [`packages/collab-web/README.md`](../packages/collab-web/README.md), [`
 - Local paths: `bun run dev` serves the UI on port 3000; `bun run mock-host` runs an offline relay
   and scripted host; `bun run build` emits a static SPA under `dist/`.
 - Constraints: non-local deployments require HTTPS and a reachable secure WebSocket relay. The room
-  key stays in the URL fragment and is not sent to the relay.
+  key stays in the URL fragment and is not sent to the relay. When the UI is hosted on http(s),
+  bare `room.key` links resolve against that origin.
+
+### `packages/collab-relay` — Cloudflare Worker collab relay
+
+Sources: [`packages/collab-relay/README.md`](../packages/collab-relay/README.md), [`packages/collab-relay/package.json`](../packages/collab-relay/package.json), [`docs/collab.md`](./collab.md).
+
+- Package: private `@oh-my-pi/collab-relay`.
+- Feature: content-blind Cloudflare Worker that serves collab-web at `/` and routes room WebSockets
+  through one Durable Object per room.
+- Local paths: `bun run collab:worker:dev` runs `wrangler dev`; `bun run collab:worker:deploy`
+  deploys; `bun --cwd=packages/collab-relay test` runs the Worker suite.
+- Limits: live collab only (`/` and `/r/<roomId>`). It does not implement `/share` or `/healthz`.
 
 ### `packages/snapcompact` — bitmap context-compression API
 

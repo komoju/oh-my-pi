@@ -111,6 +111,13 @@ function normalizeRelayOrigin(relayUrl: string): { origin: string } | { error: s
 	return { origin: `${scheme}//${url.hostname}${port}` };
 }
 
+function defaultRelayUrlForBareLink(): string {
+	const location = globalThis.location;
+	if (!location || (location.protocol !== "http:" && location.protocol !== "https:")) return DEFAULT_RELAY_URL;
+	const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+	return `${scheme}//${location.host}`;
+}
+
 /**
  * Render the shareable link. Compact forms: the default relay collapses to
  * `<roomId>.<key>`; custom wss relays drop the scheme (`host[:port]/r/…`);
@@ -146,9 +153,9 @@ export function parseCollabLink(link: string): ParsedCollabLink | { error: strin
 	// Lenient input: terminals that open OSC 8 links through strict URL stacks
 	// (macOS Foundation) percent-encode the legacy second `#` to `%23`.
 	let text = link.trim().replace(/%23/gi, "#");
-	// Bare `<roomId>.<key>` (legacy `<roomId>#<key>`) → default relay.
+	// Bare `<roomId>.<key>` (legacy `<roomId>#<key>`) → current origin, else default relay.
 	const bare = BARE_LINK_RE.exec(text);
-	if (bare) text = `${DEFAULT_RELAY_URL}/r/${bare[1]}.${bare[2]}`;
+	if (bare) text = `${defaultRelayUrlForBareLink()}/r/${bare[1]}.${bare[2]}`;
 	// Scheme-less `host[:port]/r/…` → wss.
 	else if (!text.includes("://")) text = `wss://${text}`;
 	let url: URL;

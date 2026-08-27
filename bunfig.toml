@@ -2,7 +2,15 @@ telemetry = false
 
 [install]
 minimumReleaseAge = 259200 # 3 days in seconds
-minimumReleaseAgeExcludes = ["@types/bun", "bun-types", "kitty-vt-wasm", "@stencil-hq/vibemon"]
+minimumReleaseAgeExcludes = [
+	"@types/bun",
+	"bun-types",
+	"kitty-vt-wasm",
+	"@stencil-hq/vibemon",
+	"wrangler",
+	"vitest",
+	"@cloudflare/vitest-pool-workers",
+]
 linker = "hoisted"
 exact = true
 saveTextLockfile = true
@@ -33,6 +41,7 @@ pathIgnorePatterns = [
   ".worktrees/**",
   "bazel-*/**",
   "**/bazel-out/**",
+  "packages/collab-relay/**",
 ]
 
 [run]

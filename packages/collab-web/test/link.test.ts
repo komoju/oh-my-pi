@@ -31,6 +31,22 @@ describe("collab link parsing", () => {
 		expect(parsed.key).toEqual(KEY);
 	});
 
+	it("parses bare links against the current browser origin when hosted on a custom relay", () => {
+		const previous = Object.getOwnPropertyDescriptor(globalThis, "location");
+		Object.defineProperty(globalThis, "location", {
+			configurable: true,
+			value: { protocol: "https:", host: "omp.snd.one" },
+		});
+		try {
+			const parsed = parseCollabLink(`${ROOM}.${KEY_TEXT}`);
+			if ("error" in parsed) throw new Error(parsed.error);
+			expect(parsed.wsUrl).toBe(`wss://omp.snd.one/r/${ROOM}`);
+		} finally {
+			if (previous) Object.defineProperty(globalThis, "location", previous);
+			else delete (globalThis as { location?: Location }).location;
+		}
+	});
+
 	it("infers wss for scheme-less custom hosts", () => {
 		const parsed = parseCollabLink(`relay.example.com:8443/r/${ROOM}#${KEY_TEXT}`);
 		if ("error" in parsed) throw new Error(parsed.error);

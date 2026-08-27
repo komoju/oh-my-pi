@@ -157,14 +157,19 @@ Set `collab.webUrl` when the browser UI is hosted separately from the websocket 
 
 ## Self-hosting the relay
 
-The production relay is not currently distributed for self-hosting: its Go source and standalone binaries are not published. The endpoint list below documents the hosted service's network contract, not an installable release.
+[`packages/collab-relay`](../packages/collab-relay) is a Cloudflare Worker that implements the live collab contract: it serves the collab-web guest client at `/` and upgrades `GET /r/<roomId>?role=host|guest` into one Durable Object per room. Bare `room.key` links in that hosted UI resolve against the current origin, so a Worker at `https://omp.example` connects to `wss://omp.example` rather than `wss://my.omp.sh`.
 
-For local protocol development, this repository includes a source-available, WebSocket-only stand-in at [`packages/collab-web/scripts/local-relay.ts`](../packages/collab-web/scripts/local-relay.ts). Run `bun run relay` from `packages/collab-web` to listen on `ws://localhost:7466`. It implements `/r/<roomId>` but does not serve the browser client, `/share` blobs, or `/healthz`, so it is not a replacement for the production service.
+```sh
+bun run collab:worker:dev      # wrangler dev — http://localhost:8787
+bun run collab:worker:deploy   # wrangler deploy
+```
 
-The relay is a small content-blind Go service. It keeps no state beyond live connections and exposes:
+Point hosts at the Worker with `/collab wss://<your-worker>` (or `ws://localhost:8787` in local dev) and set `collab.relayUrl` if you want that origin to be the default.
 
-- `GET /` — the static collab-web guest client (target of the `/collab` deep link),
-- `GET /r/<roomId>?role=host|guest` — WebSocket upgrade,
+The Worker does not implement `/share` blob upload or `/healthz`. For local protocol development without Cloudflare, [`packages/collab-web/scripts/local-relay.ts`](../packages/collab-web/scripts/local-relay.ts) remains available: `bun run relay` from `packages/collab-web` listens on `ws://localhost:7466` and implements `/r/<roomId>` only.
+
+The hosted `my.omp.sh` service additionally exposes:
+
 - `POST /s` / `GET /s/<id>` / `GET /s/<id>/raw` — `/share` blob upload, viewer page, and blob fetch,
 - `GET /healthz` — liveness.
 

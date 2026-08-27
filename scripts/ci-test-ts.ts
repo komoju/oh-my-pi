@@ -106,6 +106,9 @@ const nativeAndIntegrationPackages = [
 	"packages/typescript-edit-benchmark",
 ];
 
+// Cloudflare Workers tests run under vitest-pool-workers, not `bun test`.
+const vitestWorkspacePackages = ["packages/collab-relay"];
+
 // Packages the CI buckets deliberately skip but a local full run should still
 // cover. robomp-web lives under python/robomp and is outside every CI TS bucket.
 const localOnlyWorkspacePackages = ["python/robomp/web"];
@@ -208,6 +211,14 @@ function workspaceTestCommand(pkg: string, parallel: number, options: { extraArg
 		cwd: pkg,
 		command: ["bun", "test", ...extraArgs],
 		parallel,
+	};
+}
+
+function vitestTestCommand(pkg: string): TestCommand {
+	return {
+		label: pkg,
+		cwd: pkg,
+		command: ["bun", "run", "test"],
 	};
 }
 
@@ -328,7 +339,10 @@ async function commandsForMode(mode: Mode): Promise<TestCommand[]> {
 		case "workspace":
 			return fastWorkspacePackages.map(pkg => workspaceTestCommand(pkg, 8));
 		case "native":
-			return nativeAndIntegrationPackages.map(pkg => workspaceTestCommand(pkg, 4));
+			return [
+				...nativeAndIntegrationPackages.map(pkg => workspaceTestCommand(pkg, 4)),
+				...vitestWorkspacePackages.map(vitestTestCommand),
+			];
 		case "coding-agent-singleton":
 			return await codingAgentTestCommands("singleton");
 		case "coding-agent-ui":
@@ -359,6 +373,7 @@ async function commandsForMode(mode: Mode): Promise<TestCommand[]> {
 			return [
 				...fastWorkspacePackages.map(pkg => workspaceTestCommand(pkg, 8, { extraArgs: onlyFailuresArgs })),
 				...nativeAndIntegrationPackages.map(pkg => workspaceTestCommand(pkg, 4, { extraArgs: onlyFailuresArgs })),
+				...vitestWorkspacePackages.map(vitestTestCommand),
 				...localOnlyWorkspacePackages.map(pkg => workspaceTestCommand(pkg, 4, { extraArgs: onlyFailuresArgs })),
 				...(await commandsForMode("coding-agent-heavy")),
 			];

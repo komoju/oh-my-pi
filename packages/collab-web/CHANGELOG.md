@@ -20,6 +20,9 @@
 
 - Transcript Markdown now renders LaTeX: `$…$` and `\(…\)` inline, `$$…$$` and `\[…\]` in display mode, plus own-line `$$`/`\[` blocks. Currency ("$5 and $10"), escaped dollars, and code spans stay literal, and half-streamed delimiters stay visible until the equation closes.
 - Note: parity with the TUI covers these delimited forms only. Bare `\begin{…}…\end{…}` environments without `$$`/`\[` fences remain literal here (the TUI typesets them); web support is a follow-up.
+### Changed
+
+- Bare `room.key` links now resolve against the current browser origin when the guest UI is hosted on https/http, so a self-hosted frontend talks to its own relay instead of `wss://my.omp.sh`.
 
 ## [17.3.8] - 2026-08-19
 
