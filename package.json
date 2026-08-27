@@ -169,12 +169,10 @@
     "gen:native:reset": "bun --cwd=packages/natives run gen:native:reset",
     "check-spoofed-versions": "bun scripts/check-spoofed-versions.ts",
     "collab:worker:dev": "bun --cwd=packages/collab-relay run dev",
-    "collab:worker:deploy": "cd packages/collab-relay && bun run deploy"
-  },
-  "dependencies": {
-    "sherpa-onnx": "1.13.2",
-    "sherpa-onnx-darwin-arm64": "1.13.3",
-    "sherpa-onnx-node": "1.13.2"
+    "collab:worker:deploy": "cd packages/collab-relay && bun run deploy",
+    "natives:fetch": "bun packages/natives/scripts/fetch-release-addons.ts",
+    "natives:fetch:latest": "bun packages/natives/scripts/fetch-release-addons.ts --latest",
+    "natives:fetch:canary": "bun packages/natives/scripts/fetch-release-addons.ts --canary"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
@@ -185,9 +183,6 @@
     "prettier": "catalog:",
     "ts-morph": "catalog:",
     "typescript": "catalog:"
-  },
-  "overrides": {
-    "@ark/schema": "0.56.2"
   },
   "lint-staged": {
     "packages/*/src/**/*.{ts,tsx}": [
@@ -206,6 +201,14 @@
       "oxlint --fix",
       "oxfmt"
     ]
+  },
+  "dependencies": {
+    "sherpa-onnx": "1.13.2",
+    "sherpa-onnx-darwin-arm64": "1.13.3",
+    "sherpa-onnx-node": "1.13.2"
+  },
+  "overrides": {
+    "@ark/schema": "0.56.2"
   },
   "packageManager": "bun@>=1.4",
   "patchedDependencies": {
