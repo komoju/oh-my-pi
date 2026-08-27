@@ -19,6 +19,8 @@ This repo contains multiple packages, but **`packages/coding-agent/`** is the pr
 | `packages/stats`        | Local observability dashboard (`omp stats`)                                             |
 | `packages/omptype`      | ArkType-compatible schema validation with a lazy JIT runtime                            |
 | `packages/utils`        | Shared utilities (logger, streams, temp files)                                          |
+| `packages/collab-web`   | Browser guest client for `/collab` live sessions                                        |
+| `packages/collab-relay` | Cloudflare Worker relay (Durable Object rooms + collab-web assets)                      |
 | `crates/pi-natives`     | Rust crate for performance-critical text/grep ops                                       |
 
 **Catalog import convention**: code in this repo imports catalog _values_ (bundled models, model-thinking helpers, identity, descriptors, model manager/cache) from `@oh-my-pi/pi-catalog/<module>` — never via `@oh-my-pi/pi-ai`. The pi-ai barrel re-exports only the model/effort _types_ its own signatures use (`Model`, `Api`, `ThinkingConfig`, `Effort`, …); type-only imports of those from `@oh-my-pi/pi-ai` are fine.

@@ -1,0 +1,47 @@
+{
+	"type": "module",
+	"name": "@oh-my-pi/collab-relay",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Cloudflare Worker collab relay: Durable Object rooms plus the collab-web guest client",
+	"homepage": "https://omp.sh",
+	"author": "Stencil Labs, Inc.",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/can1357/oh-my-pi.git",
+		"directory": "packages/collab-relay"
+	},
+	"bugs": {
+		"url": "https://github.com/can1357/oh-my-pi/issues"
+	},
+	"keywords": [
+		"collab",
+		"relay",
+		"websocket",
+		"cloudflare",
+		"durable-objects"
+	],
+	"scripts": {
+		"assets": "bun scripts/ensure-assets.ts",
+		"deploy": "bun --cwd=../collab-web run build && wrangler deploy",
+		"dev": "bun run assets && wrangler dev",
+		"start": "bun run dev",
+		"test": "bun run assets && vitest run",
+		"cf-typegen": "wrangler types",
+		"check": "biome check . && bun run check:types",
+		"check:types": "tsc --noEmit",
+		"lint": "biome lint .",
+		"fix": "biome check --write --unsafe .",
+		"fmt": "biome format --write ."
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "0.12.4",
+		"typescript": "catalog:",
+		"vitest": "3.2.4",
+		"wrangler": "4.105.0"
+	},
+	"engines": {
+		"bun": ">=1.3.14"
+	}
+}

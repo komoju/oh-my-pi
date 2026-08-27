@@ -7,7 +7,8 @@
 	"workspaces": {
 		"packages": [
 			"packages/*",
-			"python/robomp/web"
+			"python/robomp/web",
+			"packages/collab-relay"
 		],
 		"catalog": {
 			"@babel/generator": "^7.29.7",
@@ -163,7 +164,9 @@
 		"gen:bundle": "bun --cwd=packages/coding-agent run gen:bundle",
 		"gen:rpc": "bun --cwd=packages/coding-agent run gen:rpc",
 		"gen:glyphs": "bun --cwd=packages/tui run gen:glyphs",
-		"check-spoofed-versions": "bun scripts/check-spoofed-versions.ts"
+		"check-spoofed-versions": "bun scripts/check-spoofed-versions.ts",
+		"collab:worker:deploy": "cd packages/collab-relay && bun run deploy",
+		"collab:worker:dev": "bun --cwd=packages/collab-relay run dev"
 	},
 	"dependencies": {
 		"sherpa-onnx": "1.13.2",
