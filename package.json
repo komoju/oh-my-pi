@@ -166,7 +166,10 @@
 		"gen:glyphs": "bun --cwd=packages/tui run gen:glyphs",
 		"check-spoofed-versions": "bun scripts/check-spoofed-versions.ts",
 		"collab:worker:deploy": "cd packages/collab-relay && bun run deploy",
-		"collab:worker:dev": "bun --cwd=packages/collab-relay run dev"
+		"collab:worker:dev": "bun --cwd=packages/collab-relay run dev",
+		"natives:fetch": "bun packages/natives/scripts/fetch-release-addons.ts",
+		"natives:fetch:canary": "bun packages/natives/scripts/fetch-release-addons.ts --canary",
+		"natives:fetch:latest": "bun packages/natives/scripts/fetch-release-addons.ts --latest"
 	},
 	"dependencies": {
 		"sherpa-onnx": "1.13.2",

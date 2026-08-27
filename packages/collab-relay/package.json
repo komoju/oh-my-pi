@@ -24,7 +24,7 @@
 	],
 	"scripts": {
 		"assets": "bun scripts/ensure-assets.ts",
-		"deploy": "bun --cwd=../collab-web run build && wrangler deploy",
+		"deploy": "bun scripts/deploy.ts",
 		"dev": "bun run assets && wrangler dev",
 		"start": "bun run dev",
 		"test": "bun run assets && vitest run",
