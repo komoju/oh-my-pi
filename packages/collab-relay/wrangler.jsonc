@@ -1,0 +1,31 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "collab-relay",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-26",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"assets": {
+		"directory": "../collab-web/dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": ["/r/*"]
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "COLLAB_RELAY_ROOM",
+				"class_name": "CollabRelayRoom"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["CollabRelayRoom"]
+		}
+	]
+}
