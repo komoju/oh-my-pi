@@ -108,6 +108,11 @@
 ### Fixed
 
 - Improved TypeScript and TSX syntax highlighting, including correct handling of type annotations and template literals.
+### Fixed
+
+- Fixed the native addon version sentinel being matched as a substring, so an addon for `18.1.10` could satisfy a lookup for `18.1.1`. The loader, the embed pipeline, and `natives:fetch` now all require an exact identifier boundary match (ported from upstream's `native/version-sentinel.js`).
+- `natives:fetch` now verifies each downloaded tarball against the npm registry's `dist.integrity` (sha512) before extracting it, and the embed pipeline rejects addons that do not carry the current package version's sentinel — a stale `.node` can no longer be silently embedded into a release build.
+
 
 ## [18.0.5] - 2026-08-25
 

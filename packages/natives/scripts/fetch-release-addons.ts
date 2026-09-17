@@ -4,7 +4,7 @@
  * @oh-my-pi/pi-natives-linux-x64 npm leaf package into packages/natives/native.
  *
  * The GitHub release does not ship .node files (only omp binaries, the browser
- * relay zip, LICENSE/THIRD-PARTY-NOTICES.txt, SHA256SUMS.txt); the linux-x64
+ * relay zip, LICENSE, THIRD-PARTY-NOTICES.txt, SHA256SUMS.txt); the linux-x64
  * addons are published to npm as the @oh-my-pi/pi-natives-linux-x64 leaf. This
  * mirrors the CI PR path (.github/workflows/ci.yml "Fetch release native
  * addons (npm)") so a checkout that cannot bazel-build can still load the
@@ -20,17 +20,21 @@
  *
  * The destination defaults to packages/natives/native, overridable with
  * --dest. Downloads go to <dest>/.fetch-tmp/<name>.part and are resumed with
- * curl -C -; the fetched files only land as their final names once a tar
- * listing has verified the tarball contains exactly the two expected addons.
- * On-disk files are only considered up to date when they carry the requested
- * release's `__piNativesV…` version sentinel — stale addons from an older
- * checkout are refetched rather than silently skipped, so a release build
- * never embeds addons that mismatch the loader.
+ * curl -C -; the tarball is verified against the registry's dist.integrity
+ * (sha512) before extraction, and the fetched files only land as their final
+ * names once a tar listing has verified the tarball contains exactly the two
+ * expected addons. On-disk files are only considered up to date when they
+ * carry the requested release's `__piNativesV…` version sentinel (exact
+ * match, so `__piNativesV18_1_10` cannot satisfy a lookup for
+ * `__piNativesV18_1_1`) — stale addons from an older checkout are refetched
+ * rather than silently skipped, so a release build never embeds addons that
+ * mismatch the loader.
  */
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { $ } from "bun";
+import { containsVersionSentinel, versionSentinelFor } from "../native/version-sentinel.js";
 
 const repoRoot = path.join(import.meta.dir, "../../..");
 const nativeDirDefault = path.join(repoRoot, "packages/natives/native");
@@ -76,9 +80,8 @@ async function catalogVersion(): Promise<string> {
 	return version;
 }
 
-function tarballUrl(version: string): string {
-	return `https://registry.npmjs.org/${leafPackage}/-/${leafPackage.slice(leafPackage.lastIndexOf("/") + 1)}-${version}.tgz`;
-}
+const tarballUrl = (version: string) =>
+	`https://registry.npmjs.org/${leafPackage}/-/pi-natives-linux-x64-${version}.tgz`;
 
 /** Resolve --ref to an exact npm version via the npm registry. */
 async function resolveVersion(ref: string): Promise<string> {
@@ -93,6 +96,60 @@ async function resolveVersion(ref: string): Promise<string> {
 	return version;
 }
 
+interface LeafDist {
+	integrity: string | null;
+	tarball: string | null;
+}
+
+/**
+ * The registry's `dist` metadata (sha512 integrity + tarball URL) for an exact
+ * leaf version. `npm view <pkg>@<version> dist --json` wraps the projected
+ * dist object in a one-element array; accept the wrapped and unwrapped shapes.
+ */
+async function registryDist(version: string): Promise<LeafDist> {
+	const spec = `${leafPackage}@${version}`;
+	const proc = await $`npm view ${spec} dist --json`.quiet().nothrow();
+	if (proc.exitCode !== 0) {
+		throw new Error(
+			`Could not read registry metadata for ${spec}: ${proc.stderr.toString().trim() || "npm view failed"}`,
+		);
+	}
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(proc.stdout.toString());
+	} catch {
+		throw new Error(`npm view ${spec} --json returned unparseable output`);
+	}
+	const record = (Array.isArray(parsed) ? parsed[0] : parsed) as unknown;
+	if (typeof record !== "object" || record === null) throw new Error(`Unexpected npm view output for ${spec}`);
+	const props = record as Record<string, unknown>;
+	const dist = ("dist" in props ? props.dist : record) as unknown;
+	if (typeof dist !== "object" || dist === null) throw new Error(`No dist metadata for ${spec}`);
+	const distProps = dist as Record<string, unknown>;
+	return {
+		integrity: typeof distProps.integrity === "string" ? distProps.integrity : null,
+		tarball: typeof distProps.tarball === "string" ? distProps.tarball : null,
+	};
+}
+
+/** Verify the downloaded tarball against the registry's sha512 dist.integrity. */
+async function verifyIntegrity(tarballPath: string, integrity: string | null, version: string): Promise<void> {
+	if (!integrity) {
+		throw new Error(
+			`Registry metadata for ${leafPackage}@${version} carries no dist.integrity; refusing to install unverified addons`,
+		);
+	}
+	const m = /^sha512-([A-Za-z0-9+/]+={0,2})$/.exec(integrity);
+	if (!m || Buffer.from(m[1], "base64").length !== 64) {
+		throw new Error(`Unparseable dist.integrity for ${leafPackage}@${version}: ${integrity}`);
+	}
+	const expected = Buffer.from(m[1], "base64").toString("hex");
+	const hasher = new Bun.CryptoHasher("sha512");
+	hasher.update(await Bun.file(tarballPath).arrayBuffer());
+	if (hasher.digest("hex") !== expected) {
+		throw new Error(`Integrity mismatch for ${path.basename(tarballPath)}: expected ${integrity}, got ${expected}`);
+	}
+}
 async function downloadTarball(url: string, partPath: string, dryRun: boolean): Promise<void> {
 	if (dryRun) {
 		console.log(`$ curl -fsSL --retry 3 -C - ${url} -o ${path.basename(partPath)}`);
@@ -140,9 +197,14 @@ async function installAddonFiles(tarballPath: string, destDir: string, dryRun: b
 	}
 }
 
-/** The `__piNativesV{major}_{minor}_{patch}` sentinel exported by a given release's addons. */
-function versionSentinel(version: string): string {
-	return `__piNativesV${version.replace(/[^A-Za-z0-9]/g, "_")}`;
+/** True when the on-disk addon bytes carry the exact sentinel for `version`. */
+async function carriesSentinel(filePath: string, sentinel: string): Promise<boolean> {
+	try {
+		return containsVersionSentinel(Buffer.from(await Bun.file(filePath).arrayBuffer()), sentinel);
+	} catch {
+		// Unreadable (e.g. dlopen-locked) — treat as absent so the fetch re-runs.
+		return false;
+	}
 }
 
 async function main(): Promise<void> {
@@ -150,19 +212,13 @@ async function main(): Promise<void> {
 	const version = options.ref ? await resolveVersion(options.ref) : await catalogVersion();
 	const destDir = options.dest;
 
-	const sentinel = versionSentinel(version);
+	const sentinel = versionSentinelFor(version);
 	const manifestName = `${leafPackage}@${version}`;
 	const existing: string[] = [];
 	for (const file of expectedFiles) {
 		const filePath = path.join(destDir, file);
 		if (!(await Bun.file(filePath).exists())) continue;
-		let carriesSentinel = false;
-		try {
-			carriesSentinel = (await Bun.file(filePath).text()).includes(sentinel);
-		} catch {
-			// Unreadable (e.g. dlopen-locked) — treat as absent so the fetch re-runs.
-		}
-		existing.push(carriesSentinel ? file : `${file} (wrong version, refetching)`);
+		existing.push((await carriesSentinel(filePath, sentinel)) ? file : `${file} (wrong version, refetching)`);
 	}
 	if (existing.length === expectedFiles.length && existing.every(entry => !entry.includes("refetching"))) {
 		console.log(`addons for ${manifestName} already present in ${path.relative(repoRoot, destDir)} — skipping`);
@@ -184,6 +240,13 @@ async function main(): Promise<void> {
 	if (!tarballExists) {
 		await downloadTarball(url, partPath, options.dryRun);
 		if (!options.dryRun) await fs.rename(partPath, tarballPath);
+	}
+	if (!options.dryRun) {
+		const dist = await registryDist(version);
+		if (dist.tarball && dist.tarball !== url) {
+			throw new Error(`Registry tarball URL ${dist.tarball} does not match ${url} for ${version}`);
+		}
+		await verifyIntegrity(tarballPath, dist.integrity, version);
 	}
 	await installAddonFiles(tarballPath, destDir, options.dryRun);
 
